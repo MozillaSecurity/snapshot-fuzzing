@@ -4,7 +4,7 @@
 
 from argparse import ArgumentParser
 from pathlib import Path
-from subprocess import run
+from subprocess import PIPE, run
 import json
 import logging
 import struct
@@ -15,10 +15,10 @@ LOG = logging.getLogger(__file__)
 def symbolize(addresses, mod_path):
     output = run(
         ["llvm-addr2line", "--output-style=JSON", "--inlining=true", "-C", "-e", mod_path],
-        capture_output=True,
+        stdout=PIPE,
         input="\n".join(addresses),
         text=True,
-    ).stdout.split("\n")
+    ).stdout.splitlines()
 
     locations = []
 
@@ -62,13 +62,13 @@ def read_line_clusters(file):
     return line_clusters
 
 # Ensure we're warning about missing files only once to keep output readable.
-line_cluster_warned = {}
+line_cluster_warned = set()
 
 def get_line_cluster(line_clusters, name, line):
     if name not in line_clusters:
         if line_clusters and name not in line_cluster_warned:
             LOG.warning("file not found in line clusters: %s", name)
-            line_cluster_warned[name] = True
+            line_cluster_warned.add(name)
         return [line]
     for x in line_clusters[name]:
         if line in x:
