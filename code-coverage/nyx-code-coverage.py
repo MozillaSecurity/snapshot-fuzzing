@@ -125,8 +125,13 @@ def main():
     modinfo = read_modinfo(args.dump_folder / "modinfo.txt", args.sharedir / "firefox")
 
     if len(pointers) != len(bitmap):
-        LOG.error("ERROR: Length mismatch: len(pointers) != len(bitmap)")
-        sys.exit(1)
+        if (((len(bitmap) + 63) >> 6) << 6) == len(pointers):
+            # This is fine, AFL++ increases the bitmap size to a multiple of 64
+            # and we can just truncate the bitmap back to the right length.
+            bitmap = bitmap[:len(pointers)]
+        else:
+            LOG.error("ERROR: Length mismatch: len(pointers) != len(bitmap)")
+            sys.exit(1)
 
     line_clusters = read_line_clusters(args.line_clusters)
 
