@@ -140,35 +140,8 @@ void init_trace_buffers() {
   static bool done = false;
 
   if (!done) {
-    host_config_t host_config;
-    kAFL_hypercall(HYPERCALL_KAFL_GET_HOST_CONFIG, (uintptr_t)&host_config);
-
-    if (host_config.host_magic != NYX_HOST_MAGIC) {
-      hprintf(
-          "Error: NYX_HOST_MAGIC not found in host configuration - You are "
-          "probably using an outdated version of QEMU-Nyx...");
-      kAFL_hypercall(HYPERCALL_KAFL_USER_ABORT, 0);
-    }
-
-    if (host_config.host_version != NYX_HOST_VERSION) {
-      hprintf(
-          "Error: NYX_HOST_VERSION not found in host configuration - You are "
-          "probably using an outdated version of QEMU-Nyx...");
-      kAFL_hypercall(HYPERCALL_KAFL_USER_ABORT, 0);
-    }
-
-    hprintf("[*] %s: host_config.bitmap_size: 0x%x\n", __func__,
-            host_config.bitmap_size);
-    hprintf("[*] %s: host_config.ijon_bitmap_size: 0x%x\n", __func__,
-            host_config.ijon_bitmap_size);
-    hprintf("[*] %s: host_config.payload_buffer_size: 0x%x\n", __func__,
-            host_config.payload_buffer_size);
-
     char* map_size = getenv("AFL_MAP_SIZE");
-    uint32_t bitmap_size = host_config.bitmap_size;
-    if (map_size) {
-      bitmap_size = atoi(map_size);
-    }
+    uint32_t bitmap_size = atoi(map_size);
 
     trace_buffer = mmap((void*)NULL, bitmap_size, PROT_READ | PROT_WRITE,
                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -436,12 +409,12 @@ bool nyx_firefox_is_parent = false;
 char* getenv(const char* name) {
   char* (*_getenv)(const char* name) = dlsym(RTLD_NEXT, "getenv");
 
-  if (nyx_firefox_is_parent && !strcmp(name, "__AFL_SHM_ID")) {
+  if (!strcmp(name, "__AFL_SHM_ID")) {
     hprintf("[*] %s: AFL instrumentation requesting __AFL_SHM_ID\n", __func__);
     return "5134680";
   }
 
-  if (nyx_firefox_is_parent && !strcmp(name, "__AFL_PCMAP_SHM_ID")) {
+  if (!strcmp(name, "__AFL_PCMAP_SHM_ID")) {
     hprintf("[*] %s: AFL instrumentation requesting __AFL_PCMAP_SHM_ID\n",
             __func__);
     return "5134681";
@@ -451,15 +424,14 @@ char* getenv(const char* name) {
 }
 
 void* shmat(int shmid, const void* shmaddr, int shmflg) {
-  if (nyx_firefox_is_parent && shmid == 5134680) {
+  if (shmid == 5134680) {
     init_trace_buffers();
-    capabilites_configuration(false, true, false);
 
     hprintf("[%d] AFL BITMAP IS at: %p\n", getpid(), trace_buffer);
     return trace_buffer;
   }
 
-  if (nyx_firefox_is_parent && shmid == 5134681) {
+  if (shmid == 5134681) {
     return pcmap_buffer;
   }
 
@@ -480,15 +452,11 @@ int __libc_start_main(int (*main)(int, char**, char**), int argc, char** ubp_av,
 
   nyx_firefox_is_parent = get_parent_process(argc, ubp_av);
 
+  init_trace_buffers();
   if (nyx_firefox_is_parent) {
-    init_crash_handling();
-    init_trace_buffers();
-    capabilites_configuration(false, true, true);
-
     hprintf("[*] Parent: %d\n", getpid());
   } else {
     hprintf("[*] New child: %d\n", getpid());
-    setpriority(PRIO_PROCESS, 0, 10);
   }
 
   return original__libc_start_main(main, argc, ubp_av, init, fini, rtld_fini,

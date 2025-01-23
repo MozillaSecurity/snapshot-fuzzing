@@ -43,8 +43,13 @@ void nyx_start(void) {
   // late enough so the process won't fork/exit afterwards.
   init_stats();
 
+  host_config_t host_config;
+  kAFL_hypercall(HYPERCALL_KAFL_GET_HOST_CONFIG, (uintptr_t)&host_config);
+
   capabilites_configuration(false, true, true);
   nyx_quiet = !!getenv("MOZ_FUZZ_NYX_QUIET");
+
+  init_crash_handling();
 
   if (!!getenv("MOZ_FUZZ_COVERAGE")) {
     // Write module info, this is the mapping of modules into address space
@@ -55,6 +60,12 @@ void nyx_start(void) {
 
     // Write PC table, this is the mapping of coverage map index to PC
     upload_file_to_host(pcmap_buffer, pcmap_buffer_size, "pcmap.dump");
+    // Again, persist pages as late as possible to avoid issues.
+    for (void* addr = perm_trace_buffer;
+         addr < (void*)(perm_trace_buffer + perm_trace_buffer_size); addr += getpagesize()) {
+      kAFL_hypercall(HYPERCALL_KAFL_PERSIST_PAGE_PAST_SNAPSHOT,
+                     (uintptr_t)addr);
+    }
   }
 
   nyx_init_start();
