@@ -38,6 +38,29 @@ static bool nyx_quiet = false;
 // Used by prctl interceptor
 bool nyx_started = false;
 
+void check_host_config(host_config_t host_config) {
+  if (host_config.host_magic != NYX_HOST_MAGIC) {
+    hprintf(
+        "Error: NYX_HOST_MAGIC not found in host configuration - You are "
+        "probably using an outdated version of QEMU-Nyx...");
+    kAFL_hypercall(HYPERCALL_KAFL_USER_ABORT, 0);
+  }
+
+  if (host_config.host_version != NYX_HOST_VERSION) {
+    hprintf(
+        "Error: NYX_HOST_VERSION not found in host configuration - You are "
+        "probably using an outdated version of QEMU-Nyx...");
+    kAFL_hypercall(HYPERCALL_KAFL_USER_ABORT, 0);
+  }
+
+  hprintf("[*] %s: host_config.bitmap_size: 0x%x\n", __func__,
+          host_config.bitmap_size);
+  hprintf("[*] %s: host_config.ijon_bitmap_size: 0x%x\n", __func__,
+          host_config.ijon_bitmap_size);
+  hprintf("[*] %s: host_config.payload_buffer_size: 0x%x\n", __func__,
+          host_config.payload_buffer_size);
+}
+
 void nyx_start(void) {
   // Stats use a persistent page, we need to make sure to initialize this
   // late enough so the process won't fork/exit afterwards.
@@ -45,6 +68,7 @@ void nyx_start(void) {
 
   host_config_t host_config;
   kAFL_hypercall(HYPERCALL_KAFL_GET_HOST_CONFIG, (uintptr_t)&host_config);
+  check_host_config(host_config);
 
   capabilites_configuration(false, true, true);
   nyx_quiet = !!getenv("MOZ_FUZZ_NYX_QUIET");
