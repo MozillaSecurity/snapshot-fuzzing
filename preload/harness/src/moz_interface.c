@@ -84,6 +84,7 @@ void nyx_start(void) {
 
     // Write PC table, this is the mapping of coverage map index to PC
     upload_file_to_host(pcmap_buffer, pcmap_buffer_size, "pcmap.dump");
+
     // Again, persist pages as late as possible to avoid issues.
     for (void* addr = perm_trace_buffer;
          addr < (void*)(perm_trace_buffer + perm_trace_buffer_size); addr += getpagesize()) {
