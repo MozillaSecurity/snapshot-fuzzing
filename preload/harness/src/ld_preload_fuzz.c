@@ -457,6 +457,9 @@ int __libc_start_main(int (*main)(int, char**, char**), int argc, char** ubp_av,
     hprintf("[*] Parent: %d\n", getpid());
   } else {
     hprintf("[*] New child: %d\n", getpid());
+    if (!!getenv("MOZ_FUZZ_PRIORITIZE_PARENT")) {
+      setpriority(PRIO_PROCESS, 0, 10);
+    }
   }
 
   return original__libc_start_main(main, argc, ubp_av, init, fini, rtld_fini,
