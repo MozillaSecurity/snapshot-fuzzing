@@ -7,6 +7,7 @@
 
 // Implemented in ld_preload_fuzz.c
 void nyx_init_start(void);
+uint32_t internal_get_owned_raw_fuzz_data(void** data);
 uint32_t internal_get_next_fuzz_data(void* data, uint32_t len);
 uint32_t internal_get_raw_fuzz_data(void* data, uint32_t len);
 

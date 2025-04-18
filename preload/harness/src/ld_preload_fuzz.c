@@ -63,6 +63,15 @@ uint8_t* global_payload_buffer = NULL;
 // in the future.
 bool asan_executable = true;
 
+uint32_t internal_get_owned_raw_fuzz_data(void** data) {
+  uint8_t* payload_buffer = global_payload_buffer;
+  uint8_t* payload_begin = payload_buffer + 4;
+  uint32_t payload_size = *(uint32_t*)payload_buffer;
+
+  *data = payload_begin;
+  return payload_size;
+}
+
 uint32_t internal_get_raw_fuzz_data(void* data, uint32_t len) {
   uint8_t* payload_buffer = global_payload_buffer;
   uint8_t* payload_begin = payload_buffer + 4;

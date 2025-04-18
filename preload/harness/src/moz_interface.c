@@ -97,6 +97,10 @@ void nyx_start(void) {
   nyx_started = true;
 }
 
+uint32_t nyx_get_owned_raw_fuzz_data(void** data) {
+  return internal_get_owned_raw_fuzz_data(data);
+}
+
 uint32_t nyx_get_raw_fuzz_data(void* data, uint32_t len) {
   return internal_get_raw_fuzz_data(data, len);
 }
