@@ -193,9 +193,15 @@ void capabilites_configuration(bool timeout_detection, bool agent_tracing,
 
     /* AFL++ LTO support */
     if (__afl_final_loc_ptr) {
-      unsigned int map_size = __afl_final_loc == 0 ? 65536 : __afl_final_loc;
-      hprintf("[capablities] overwriting bitmap_size: 0x%x\n", map_size);
-      agent_config.coverage_bitmap_size = map_size;
+      uint32_t bitmap_size;
+      if (!!getenv("MOZ_FUZZ_COVERAGE")) {
+        bitmap_size = atoi(getenv("AFL_MAP_SIZE"));
+      } else {
+        bitmap_size = __afl_final_loc == 0 ? 65536 : __afl_final_loc;
+      }
+
+      hprintf("[capablities] overwriting bitmap_size: 0x%x\n", bitmap_size);
+      agent_config.coverage_bitmap_size = bitmap_size;
     }
 
     hprintf("[capablities] trace_buffer: %p __afl_area_ptr: %p \n",

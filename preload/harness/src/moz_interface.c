@@ -28,6 +28,9 @@
 void capabilites_configuration(bool timeout_detection, bool agent_tracing,
                                bool ijon_tracing);
 
+// This is the per-iteration trace buffer used by AFL for coverage
+extern unsigned char* trace_buffer;
+
 // External reference to the buffer holding all PCs (from pc-table)
 extern void* pcmap_buffer;
 extern size_t pcmap_buffer_size;
@@ -84,13 +87,6 @@ void nyx_start(void) {
 
     // Write PC table, this is the mapping of coverage map index to PC
     upload_file_to_host(pcmap_buffer, pcmap_buffer_size, "pcmap.dump");
-
-    // Again, persist pages as late as possible to avoid issues.
-    for (void* addr = perm_trace_buffer;
-         addr < (void*)(perm_trace_buffer + perm_trace_buffer_size); addr += getpagesize()) {
-      kAFL_hypercall(HYPERCALL_KAFL_PERSIST_PAGE_PAST_SNAPSHOT,
-                     (uintptr_t)addr);
-    }
   }
 
   nyx_init_start();
