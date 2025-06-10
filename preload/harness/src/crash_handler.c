@@ -103,7 +103,8 @@ int sigaction(int signum, const struct sigaction* act,
 void handle_asan(void) {
   char* log_file_path = NULL;
 
-  if (!nyx_firefox_is_parent) {
+  if (!nyx_firefox_is_parent && !getenv("MOZ_LOG_CHILD_CRASHES")) {
+    // Ignore content crashes unless explicitly requested
     while (1) {
       sleep(1);
     }
@@ -127,15 +128,7 @@ void handle_asan(void) {
     }
     fclose(f);
 
-    if (nyx_firefox_is_parent) {
-      kAFL_hypercall(HYPERCALL_KAFL_PANIC_EXTENDED, (uint64_t)log_content);
-    } else {
-      hprintf("[*] crash found in child process! %s\n", log_content);
-      while (1) {
-        sleep(1);
-      }
-      kAFL_hypercall(HYPERCALL_KAFL_RELEASE, 0);
-    }
+    kAFL_hypercall(HYPERCALL_KAFL_PANIC_EXTENDED, (uint64_t)log_content);
   } else {
     hprintf("ERROR: Cannot locate log_file at %s!?\n", log_file_path);
   }
